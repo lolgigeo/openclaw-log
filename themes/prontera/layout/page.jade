@@ -1,0 +1,28 @@
+extends partial/layout
+
+block container
+    div#post-container
+        div.post
+            article.post-block
+                h1.post-title= page.title
+                if page.date
+                    div.post-info= date(page.date, config.date_format)
+                div.post-content!= page.content
+                
+                if page.type === 'categories'
+                    div.categories-list
+                        each category in site.categories.toArray()
+                            div.category-item
+                                a(href=url_for(category.path))
+                                    h3= category.name
+                                    span.count (#{category.posts.length})
+                
+                if page.type === 'tags'
+                    div.tags-list
+                        each tag in site.tags.toArray()
+                            a.tag-item(href=url_for(tag.path))
+                                span.tag-name= tag.name
+                                span.count (#{tag.posts.length})
+
+block copyright
+    include partial/copyright

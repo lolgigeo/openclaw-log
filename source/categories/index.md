@@ -1,6 +1,6 @@
 ---
 title: 分类
-date: 2026-02-06 07:54:00
-type: "categories"
-layout: "categories"
+date: 2026-02-06 08:20:00
+type: categories
+comments: false
 ---
