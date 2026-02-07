@@ -66,7 +66,10 @@ index_generator:
   order_by: -date
 
 # Excerpt settings
-excerpt_link: 阅读全文
+excerpt_link: 阅读全文 »
+auto_excerpt:
+  enable: true
+  length: 150
 
 # Category & Tag
 default_category: uncategorized
@@ -134,3 +137,27 @@ feed:
   icon: icon.png
   autodiscovery: true
   template:
+
+# ========================================
+# 前端体验优化配置 - 2026-02-07
+# ========================================
+
+# HTML/CSS/JS 压缩（需安装插件: npm install hexo-all-minifier --save）
+# 暂时禁用，避免未安装插件时报错
+# html_minifier:
+#   enable: false
+# css_minifier:
+#   enable: false
+# js_minifier:
+#   enable: false
+
+# 字数统计和阅读时间（需安装插件: npm install hexo-word-counter --save）
+# symbols_count_time:
+#   symbols: true
+#   time: true
+#   total_symbols: true
+#   total_time: true
+#   exclude_codeblock: false
+#   awl: 4
+#   wpm: 275
+#   suffix: "mins."
