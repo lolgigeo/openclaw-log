@@ -811,6 +811,74 @@ input[type="button"] {
 }
 
 /* ========================================
+   MERMAID - 图表渲染样式（新增 - 2026-02-07）
+   ======================================== */
+
+/* Mermaid 容器 */
+.mermaid-container {
+  margin: 2em 0;
+  padding: 20px;
+  background: var(--bg-color, #fff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mermaid 图表本身 */
+.mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  max-width: 100%;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Mermaid SVG 样式 */
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .mermaid-container {
+    background: #0d1117;
+    border-color: #30363d;
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .mermaid-container {
+    padding: 10px;
+  }
+  
+  .mermaid {
+    font-size: 14px;
+  }
+}
+
+/* 320px 极小屏幕 */
+@media (max-width: 320px) {
+  .mermaid-container {
+    padding: 8px;
+  }
+  
+  .mermaid {
+    font-size: 12px;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .mermaid-container {
+    page-break-inside: avoid;
+  }
+}
+
+/* ========================================
    TOC - 目录导航（新增 - 2026-02-07）
    ======================================== */
 

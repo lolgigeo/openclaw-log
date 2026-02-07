@@ -588,6 +588,164 @@
   }
   
   // ===========================================
+  // ⭐ Mermaid 图表渲染（新增 - 2026-02-07）
+  // ===========================================
+  function initMermaid() {
+    // 仅在文章页且存在 Mermaid 代码块时执行
+    if (!document.querySelector('.article-entry, .post-content')) return;
+    
+    // 探测 Mermaid 代码块（兼容多种结构）
+    var mermaidBlocks = [];
+    
+    // 查找所有可能的 Mermaid 代码块
+    document.querySelectorAll('pre code').forEach(function(code) {
+      var text = code.textContent || code.innerText;
+      var className = code.className || '';
+      
+      // 判断是否为 Mermaid 代码块
+      if (
+        className.indexOf('mermaid') > -1 ||
+        text.trim().startsWith('graph ') ||
+        text.trim().startsWith('sequenceDiagram') ||
+        text.trim().startsWith('classDiagram') ||
+        text.trim().startsWith('stateDiagram') ||
+        text.trim().startsWith('erDiagram') ||
+        text.trim().startsWith('journey') ||
+        text.trim().startsWith('gantt') ||
+        text.trim().startsWith('pie')
+      ) {
+        mermaidBlocks.push(code);
+      }
+    });
+    
+    // 如果没有 Mermaid 块，直接返回
+    if (mermaidBlocks.length === 0) {
+      console.log('[Mermaid] No mermaid diagrams found, skipping initialization.');
+      return;
+    }
+    
+    console.log('[Mermaid] Found ' + mermaidBlocks.length + ' mermaid blocks, initializing...');
+    
+    // 动态加载 Mermaid.js（CDN + 本地降级）
+    function loadMermaid(callback) {
+      if (window.mermaid) {
+        callback();
+        return;
+      }
+      
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.async = true;
+      
+      // CDN 地址（使用官方 CDN）
+      script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+      
+      script.onload = function() {
+        console.log('[Mermaid] Library loaded successfully.');
+        callback();
+      };
+      
+      script.onerror = function() {
+        console.error('[Mermaid] Failed to load mermaid.js from CDN, falling back to code display.');
+        // 降级：加载失败时保留代码块
+        mermaidBlocks.forEach(function(code) {
+          var pre = code.closest('pre');
+          if (pre) {
+            pre.style.cssText = 'background: #f6f8fa; border: 2px dashed #ff6b6b; padding: 16px; overflow-x: auto;';
+            var warning = document.createElement('div');
+            warning.style.cssText = 'color: #ff6b6b; margin-bottom: 10px; font-weight: bold;';
+            warning.textContent = '⚠️ Mermaid 图表加载失败，以下为源代码：';
+            pre.insertBefore(warning, code);
+          }
+        });
+      };
+      
+      document.head.appendChild(script);
+    }
+    
+    // 渲染 Mermaid 图表
+    function renderMermaid() {
+      try {
+        // 初始化 Mermaid 配置
+        mermaid.initialize({
+          startOnLoad: false, // 手动控制渲染
+          theme: window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default',
+          themeVariables: {
+            fontSize: '16px',
+            fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+          },
+          flowchart: {
+            curve: 'basis',
+            padding: 20
+          },
+          sequence: {
+            actorMargin: 50,
+            noteMargin: 10,
+            messageMargin: 35
+          },
+          securityLevel: 'loose', // 允许HTML
+          logLevel: 'error' // 只输出错误
+        });
+        
+        // 渲染每个 Mermaid 块
+        mermaidBlocks.forEach(function(code, index) {
+          try {
+            var pre = code.closest('pre');
+            if (!pre) return;
+            
+            // 获取 Mermaid 源码
+            var mermaidCode = code.textContent || code.innerText;
+            
+            // 创建 Mermaid 容器
+            var container = document.createElement('div');
+            container.className = 'mermaid-container';
+            container.setAttribute('data-processed', 'true');
+            
+            var mermaidDiv = document.createElement('div');
+            mermaidDiv.className = 'mermaid';
+            mermaidDiv.textContent = mermaidCode;
+            mermaidDiv.setAttribute('data-mermaid-index', index);
+            
+            container.appendChild(mermaidDiv);
+            
+            // 替换原 pre 元素
+            pre.parentNode.replaceChild(container, pre);
+            
+            console.log('[Mermaid] Prepared diagram #' + index);
+          } catch (err) {
+            console.error('[Mermaid] Error preparing diagram:', err);
+          }
+        });
+        
+        // 批量渲染所有图表
+        mermaid.run({
+          querySelector: '.mermaid:not([data-processed])'
+        }).then(function() {
+          console.log('[Mermaid] All diagrams rendered successfully.');
+          
+          // 标记已处理
+          document.querySelectorAll('.mermaid').forEach(function(el) {
+            el.setAttribute('data-processed', 'true');
+          });
+        }).catch(function(err) {
+          console.error('[Mermaid] Rendering error:', err);
+          
+          // 渲染失败时显示错误信息
+          document.querySelectorAll('.mermaid:not([data-processed])').forEach(function(el) {
+            el.innerHTML = '<div style="color: red; border: 2px dashed red; padding: 10px;">⚠️ Mermaid 渲染失败：' + err.message + '</div>';
+          });
+        });
+        
+      } catch (err) {
+        console.error('[Mermaid] Initialization error:', err);
+      }
+    }
+    
+    // 加载并渲染
+    loadMermaid(renderMermaid);
+  }
+  
+  // ===========================================
   // 主初始化函数
   // ===========================================
   function init() {
@@ -596,15 +754,15 @@
     initLazyLoad();
     
     // 文章页专属功能
-    if (document.querySelector('.article-entry')) {
+    if (document.querySelector('.article-entry, .post-content, article')) {
       initReadingProgress();
       addCopyButtons();
       wrapTables();
       addHeadingAnchors();
       initTocActive();
       fixAnchorOffset();
-      initMermaid();
-      initTOC(); // ⭐ 新增 TOC
+      initMermaid(); // ⭐ Mermaid 图表渲染
+      initTOC(); // ⭐ TOC 目录导航
     }
   }
   
