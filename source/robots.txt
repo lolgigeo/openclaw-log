@@ -1,0 +1,9 @@
+# robots.txt - 禁止所有搜索引擎抓取
+# 更新时间：2026-02-07
+# 站点：https://md.zeelool.asia
+
+User-agent: *
+Disallow: /
+
+# 禁止所有爬虫抓取站点内容
+# 包括但不限于：Google、Bing、百度、Yandex 等
