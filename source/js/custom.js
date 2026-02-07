@@ -343,16 +343,29 @@
     // 处理页面加载时的锚点
     if (window.location.hash) {
       setTimeout(function() {
-        var target = document.querySelector(window.location.hash);
-        if (target) {
-          var offset = 80; // 与导航栏高度一致
-          var elementPosition = target.getBoundingClientRect().top + window.pageYOffset;
-          var offsetPosition = elementPosition - offset;
+        try {
+          // ⭐ 修复：URL hash 可能包含 URL 编码字符（如中文），导致 querySelector 失败
+          // 使用 try-catch 包裹，或直接用 getElementById
+          var hashId = window.location.hash.substring(1); // 去掉 #
+          var target = document.getElementById(decodeURIComponent(hashId));
           
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
+          if (!target) {
+            // 降级：尝试直接使用 querySelector（适配非编码 ID）
+            target = document.querySelector(window.location.hash);
+          }
+          
+          if (target) {
+            var offset = 80; // 与导航栏高度一致
+            var elementPosition = target.getBoundingClientRect().top + window.pageYOffset;
+            var offsetPosition = elementPosition - offset;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        } catch (err) {
+          console.warn('[fixAnchorOffset] Invalid hash selector:', window.location.hash, err);
         }
       }, 100);
     }
@@ -603,7 +616,21 @@
       var codeElement = figure.querySelector('td.code');
       if (!codeElement) return;
       
-      var text = codeElement.textContent || codeElement.innerText;
+      // ⭐ 修复：Hexo 将每行包裹在 <span class="line"> 中，用 <br> 分隔
+      // 直接使用 textContent 会丢失换行符，导致 Mermaid 解析失败
+      // 需要手动提取每一行并拼接换行符
+      var lines = codeElement.querySelectorAll('span.line');
+      var text = '';
+      if (lines.length > 0) {
+        // 有 span.line 结构，逐行提取
+        lines.forEach(function(line) {
+          text += (line.textContent || line.innerText) + '\n';
+        });
+      } else {
+        // 降级：使用 textContent（适配其他主题）
+        text = codeElement.textContent || codeElement.innerText;
+      }
+      
       var trimmedText = text.trim();
       
       // 判断是否为 Mermaid 代码块（通过关键字）

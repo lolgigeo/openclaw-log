@@ -756,6 +756,90 @@ hexo clean && hexo generate && ./deploy.sh
 
 ## 十一、迭代日志
 
+### 2026-02-07 18:30 UTC - 修复 Mermaid 换行符丢失和锚点选择器错误
+
+**问题描述**：
+1. **Mermaid 解析错误**：所有图表报错 `Expecting 'SEMI', 'NEWLINE', 'SPACE', 'EOF'... got 'subgraph'`
+2. **querySelector 错误**：`'#6-%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD%E5%B1%82' is not a valid selector.`
+
+**问题1 根因**：
+- Hexo 高亮渲染将每行代码包裹在 `<span class="line">` 中，用 `<br>` 分隔
+- 直接使用 `textContent` 提取文本会丢失 `<br>` 标签，导致所有代码挤在一行
+- 示例：`graph TB    subgraph "用户层"` → Mermaid 期望换行符分隔，但实际收到空格
+- HTML 结构：
+  ```html
+  <td class="code">
+    <pre>
+      <span class="line">graph TB</span><br>
+      <span class="line">    subgraph "用户层"</span><br>
+      ...
+    </pre>
+  </td>
+  ```
+
+**问题2 根因**：
+- 标题 ID 包含中文字符（如 `#6-基础设施层`），浏览器会自动 URL 编码为 `#6-%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD%E5%B1%82`
+- `document.querySelector('#6-%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD%E5%B1%82')` 失败，因为 `%` 字符在 CSS 选择器中无效
+
+**修复方案**：
+
+**1. Mermaid 换行符修复**：
+```javascript
+// 修改前（错误）
+var text = codeElement.textContent || codeElement.innerText;
+
+// 修改后（正确）
+var lines = codeElement.querySelectorAll('span.line');
+var text = '';
+if (lines.length > 0) {
+  // 逐行提取，手动添加换行符
+  lines.forEach(function(line) {
+    text += (line.textContent || line.innerText) + '\n';
+  });
+} else {
+  // 降级：使用 textContent（适配其他主题）
+  text = codeElement.textContent || codeElement.innerText;
+}
+```
+
+**2. 锚点选择器修复**：
+```javascript
+// 修改前（错误）
+var target = document.querySelector(window.location.hash);
+
+// 修改后（正确）
+var hashId = window.location.hash.substring(1); // 去掉 #
+var target = document.getElementById(decodeURIComponent(hashId));
+
+if (!target) {
+  // 降级：尝试 querySelector（适配非编码 ID）
+  target = document.querySelector(window.location.hash);
+}
+```
+
+**生效验证**：
+1. 访问 `/架构/系统架构全景图/`
+2. 打开浏览器控制台（F12）
+3. 预期输出：
+   - ✅ `[Mermaid] Found X mermaid blocks, initializing...`
+   - ✅ `[Mermaid] All diagrams rendered successfully.`
+   - ❌ 不再出现 `Parse error` 或 `Invalid selector` 错误
+4. 点击目录中的中文标题链接，页面应正常滚动到对应位置
+
+**影响范围**：
+- 所有包含 Mermaid 图表的文章（修复渲染问题）
+- 所有包含中文标题的文章（修复锚点跳转）
+
+**文件位置**：
+```
+/root/website/hexo/
+└── source/
+    └── js/
+        └── custom.js  # 修复 Mermaid 换行符 + 锚点选择器
+```
+
+---
+
 ### 2026-02-07 18:15 UTC - 修复 Mermaid 图表渲染问题
 
 **问题描述**：
@@ -873,7 +957,7 @@ curl https://md.zeelool.asia/robots.txt
 
 ---
 
-*本文档最后更新于 2026-02-07 18:15 UTC*
+*本文档最后更新于 2026-02-07 18:30 UTC*
 
 ---
 
