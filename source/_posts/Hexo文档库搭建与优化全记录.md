@@ -756,6 +756,82 @@ hexo clean && hexo generate && ./deploy.sh
 
 ## 十一、迭代日志
 
+### 2026-02-07 18:15 UTC - 修复 Mermaid 图表渲染问题
+
+**问题描述**：
+- Mermaid 图表无法显示，只显示为代码块文本
+- JavaScript 选择器无法匹配 Hexo 实际生成的 HTML 结构
+
+**根本原因**：
+- Hexo 使用 `highlight.js` 渲染代码块时，将 ` ```mermaid` 代码块渲染为 `<figure class="highlight plaintext">` 结构
+- 原 JavaScript 代码使用 `pre code` 选择器，无法匹配 Hexo 生成的结构
+- 示例生成的 HTML 结构：
+  ```html
+  <figure class="highlight plaintext">
+    <table>
+      <tr>
+        <td class="gutter"><!-- 行号 --></td>
+        <td class="code">
+          <pre><span class="line">graph TB</span><br>...</pre>
+        </td>
+      </tr>
+    </table>
+  </figure>
+  ```
+
+**修复方案**：
+1. 修改 `source/js/custom.js` 中的 Mermaid 检测逻辑
+2. 使用 `document.querySelectorAll('figure.highlight')` 替代 `pre code`
+3. 提取 `td.code` 元素的文本内容作为 Mermaid 源码
+4. 通过关键字检测（`graph`、`sequenceDiagram`、`subgraph` 等）识别 Mermaid 代码块
+
+**代码变更**：
+```javascript
+// 修改前（错误）
+document.querySelectorAll('pre code').forEach(function(code) {
+  // 无法匹配 Hexo 生成的结构
+});
+
+// 修改后（正确）
+document.querySelectorAll('figure.highlight').forEach(function(figure) {
+  var codeElement = figure.querySelector('td.code');
+  if (!codeElement) return;
+  
+  var text = codeElement.textContent || codeElement.innerText;
+  // 检测 Mermaid 语法关键字
+  if (text.trim().startsWith('graph ') || ...) {
+    mermaidBlocks.push({ figure: figure, code: text });
+  }
+});
+```
+
+**生效验证**：
+1. 访问包含 Mermaid 图表的文章页面（如 `/架构/系统架构全景图/`）
+2. 打开浏览器控制台，检查日志：
+   - 预期输出：`[Mermaid] Found X mermaid blocks, initializing...`
+   - 预期输出：`[Mermaid] All diagrams rendered successfully.`
+3. 页面上应显示渲染后的图表，而非代码块
+
+**影响范围**：
+- 所有包含 ` ```mermaid` 代码块的文章
+- 测试页面：`/架构/系统架构全景图/`（包含 4 个 Mermaid 图表）
+
+**文件位置**：
+```
+/root/website/hexo/
+└── source/
+    └── js/
+        └── custom.js  # 修复 Mermaid 检测逻辑
+```
+
+**技术细节**：
+- Mermaid.js 版本：10.6.1（CDN）
+- 渲染方式：客户端动态渲染
+- 主题配置：根据 `prefers-color-scheme` 自动切换 dark/default 主题
+- 降级方案：CDN 加载失败时显示错误提示 + 源代码
+
+---
+
 ### 2026-02-07 15:45 UTC - 添加 robots.txt
 
 **变更内容**：
@@ -797,7 +873,7 @@ curl https://md.zeelool.asia/robots.txt
 
 ---
 
-*本文档最后更新于 2026-02-07 15:45 UTC*
+*本文档最后更新于 2026-02-07 18:15 UTC*
 
 ---
 

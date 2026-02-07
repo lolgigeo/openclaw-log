@@ -594,27 +594,35 @@
     // 仅在文章页且存在 Mermaid 代码块时执行
     if (!document.querySelector('.article-entry, .post-content')) return;
     
-    // 探测 Mermaid 代码块（兼容多种结构）
+    // 探测 Mermaid 代码块（兼容 Hexo highlight.js 结构）
     var mermaidBlocks = [];
     
-    // 查找所有可能的 Mermaid 代码块
-    document.querySelectorAll('pre code').forEach(function(code) {
-      var text = code.textContent || code.innerText;
-      var className = code.className || '';
+    // ⭐ Hexo 会将代码块渲染为 <figure class="highlight plaintext">
+    // 我们需要检测其中包含 Mermaid 语法的代码块
+    document.querySelectorAll('figure.highlight').forEach(function(figure) {
+      var codeElement = figure.querySelector('td.code');
+      if (!codeElement) return;
       
-      // 判断是否为 Mermaid 代码块
+      var text = codeElement.textContent || codeElement.innerText;
+      var trimmedText = text.trim();
+      
+      // 判断是否为 Mermaid 代码块（通过关键字）
       if (
-        className.indexOf('mermaid') > -1 ||
-        text.trim().startsWith('graph ') ||
-        text.trim().startsWith('sequenceDiagram') ||
-        text.trim().startsWith('classDiagram') ||
-        text.trim().startsWith('stateDiagram') ||
-        text.trim().startsWith('erDiagram') ||
-        text.trim().startsWith('journey') ||
-        text.trim().startsWith('gantt') ||
-        text.trim().startsWith('pie')
+        trimmedText.startsWith('graph ') ||
+        trimmedText.startsWith('flowchart ') ||
+        trimmedText.startsWith('sequenceDiagram') ||
+        trimmedText.startsWith('classDiagram') ||
+        trimmedText.startsWith('stateDiagram') ||
+        trimmedText.startsWith('erDiagram') ||
+        trimmedText.startsWith('journey') ||
+        trimmedText.startsWith('gantt') ||
+        trimmedText.startsWith('pie') ||
+        trimmedText.indexOf('subgraph ') > -1 // 包含子图
       ) {
-        mermaidBlocks.push(code);
+        mermaidBlocks.push({
+          figure: figure,
+          code: text
+        });
       }
     });
     
@@ -648,14 +656,14 @@
       script.onerror = function() {
         console.error('[Mermaid] Failed to load mermaid.js from CDN, falling back to code display.');
         // 降级：加载失败时保留代码块
-        mermaidBlocks.forEach(function(code) {
-          var pre = code.closest('pre');
-          if (pre) {
-            pre.style.cssText = 'background: #f6f8fa; border: 2px dashed #ff6b6b; padding: 16px; overflow-x: auto;';
+        mermaidBlocks.forEach(function(block) {
+          var figure = block.figure;
+          if (figure) {
+            figure.style.cssText = 'background: #f6f8fa; border: 2px dashed #ff6b6b; padding: 16px; overflow-x: auto;';
             var warning = document.createElement('div');
             warning.style.cssText = 'color: #ff6b6b; margin-bottom: 10px; font-weight: bold;';
             warning.textContent = '⚠️ Mermaid 图表加载失败，以下为源代码：';
-            pre.insertBefore(warning, code);
+            figure.insertBefore(warning, figure.firstChild);
           }
         });
       };
@@ -688,13 +696,10 @@
         });
         
         // 渲染每个 Mermaid 块
-        mermaidBlocks.forEach(function(code, index) {
+        mermaidBlocks.forEach(function(block, index) {
           try {
-            var pre = code.closest('pre');
-            if (!pre) return;
-            
-            // 获取 Mermaid 源码
-            var mermaidCode = code.textContent || code.innerText;
+            var figure = block.figure;
+            var mermaidCode = block.code;
             
             // 创建 Mermaid 容器
             var container = document.createElement('div');
@@ -708,8 +713,8 @@
             
             container.appendChild(mermaidDiv);
             
-            // 替换原 pre 元素
-            pre.parentNode.replaceChild(container, pre);
+            // 替换原 figure 元素
+            figure.parentNode.replaceChild(container, figure);
             
             console.log('[Mermaid] Prepared diagram #' + index);
           } catch (err) {
