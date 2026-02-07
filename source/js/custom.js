@@ -359,6 +359,235 @@
   }
   
   // ===========================================
+  // ⭐ TOC 目录导航（新增 - 2026-02-07）
+  // ===========================================
+  function initTOC() {
+    // 仅在文章页执行
+    var postContent = document.querySelector('.post-content, .article-entry, article .content, .entry-content');
+    if (!postContent) {
+      console.log('[TOC] Not a post page, skipping.');
+      return;
+    }
+    
+    // 幂等检查：避免重复生成
+    if (document.querySelector('.toc-aside') || postContent.hasAttribute('data-toc-generated')) {
+      console.log('[TOC] Already generated, skipping.');
+      return;
+    }
+    
+    // 提取标题（h2, h3）
+    var headings = postContent.querySelectorAll('h2, h3');
+    if (headings.length < 2) {
+      console.log('[TOC] Less than 2 headings (' + headings.length + '), skipping TOC.');
+      postContent.setAttribute('data-toc-generated', 'true');
+      return;
+    }
+    
+    console.log('[TOC] Found ' + headings.length + ' headings, generating TOC...');
+    
+    // 为无 ID 的标题生成 ID
+    var usedIds = {};
+    headings.forEach(function(heading) {
+      if (!heading.id) {
+        var text = heading.textContent || heading.innerText;
+        var id = slugify(text);
+        
+        // 去重
+        var originalId = id;
+        var counter = 1;
+        while (usedIds[id]) {
+          id = originalId + '-' + counter;
+          counter++;
+        }
+        
+        heading.id = id;
+        usedIds[id] = true;
+      } else {
+        usedIds[heading.id] = true;
+      }
+    });
+    
+    // 生成 TOC HTML
+    var tocHTML = '<div class="toc-header">目录</div><nav class="toc-nav" role="navigation" aria-label="目录导航"><ul class="toc-list">';
+    var currentLevel = 2;
+    
+    headings.forEach(function(heading) {
+      var level = parseInt(heading.tagName.substring(1));
+      var text = heading.textContent || heading.innerText;
+      var id = heading.id;
+      
+      // 处理层级
+      if (level > currentLevel) {
+        tocHTML += '<ul class="toc-list toc-list-' + level + '">';
+      } else if (level < currentLevel) {
+        tocHTML += '</ul>';
+      }
+      
+      tocHTML += '<li class="toc-item toc-level-' + level + '">';
+      tocHTML += '<a href="#' + id + '" class="toc-link" data-heading-id="' + id + '">';
+      tocHTML += '<span class="toc-text">' + escapeHTML(text) + '</span>';
+      tocHTML += '</a></li>';
+      
+      currentLevel = level;
+    });
+    
+    tocHTML += '</ul></nav>';
+    
+    // 创建 TOC 容器
+    var tocAside = document.createElement('aside');
+    tocAside.className = 'toc-aside';
+    tocAside.setAttribute('role', 'complementary');
+    tocAside.setAttribute('aria-label', '目录');
+    tocAside.innerHTML = tocHTML;
+    
+    // 插入 TOC 到合适位置
+    var postContainer = document.querySelector('#post-container, .post, article, main.container');
+    if (postContainer) {
+      postContainer.appendChild(tocAside);
+    } else {
+      document.body.appendChild(tocAside);
+      tocAside.style.position = 'fixed';
+      tocAside.style.right = '20px';
+      tocAside.style.top = '120px';
+    }
+    
+    // 标记已生成
+    postContent.setAttribute('data-toc-generated', 'true');
+    
+    // 绑定点击事件（平滑滚动）
+    var tocLinks = tocAside.querySelectorAll('.toc-link');
+    tocLinks.forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var targetId = this.getAttribute('href').substring(1);
+        var targetHeading = document.getElementById(targetId);
+        
+        if (targetHeading) {
+          targetHeading.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          
+          if (history.pushState) {
+            history.pushState(null, null, '#' + targetId);
+          } else {
+            window.location.hash = targetId;
+          }
+          
+          updateTOCActive(targetId);
+        }
+      });
+    });
+    
+    // 滚动高亮（IntersectionObserver 优先）
+    if ('IntersectionObserver' in window) {
+      initTOCActiveObserver(headings, tocLinks);
+    } else {
+      initTOCActiveScroll(headings, tocLinks);
+    }
+    
+    console.log('[TOC] Generated successfully.');
+  }
+
+  // 辅助函数：slugify
+  function slugify(text) {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/[\s\W-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
+  }
+
+  // 辅助函数：HTML 转义
+  function escapeHTML(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // 更新 TOC 当前项高亮
+  function updateTOCActive(activeId) {
+    var tocLinks = document.querySelectorAll('.toc-link');
+    tocLinks.forEach(function(link) {
+      if (link.getAttribute('data-heading-id') === activeId) {
+        link.classList.add('active');
+        link.setAttribute('aria-current', 'true');
+        
+        var tocNav = link.closest('.toc-nav');
+        if (tocNav) {
+          var linkTop = link.offsetTop;
+          var navHeight = tocNav.clientHeight;
+          if (linkTop > navHeight / 2) {
+            tocNav.scrollTop = linkTop - navHeight / 2;
+          }
+        }
+      } else {
+        link.classList.remove('active');
+        link.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  // IntersectionObserver 方式
+  function initTOCActiveObserver(headings, tocLinks) {
+    var observerOptions = {
+      root: null,
+      rootMargin: '-80px 0px -80% 0px',
+      threshold: 0
+    };
+    
+    var activeHeading = null;
+    
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          activeHeading = entry.target.id;
+          updateTOCActive(activeHeading);
+        }
+      });
+    }, observerOptions);
+    
+    headings.forEach(function(heading) {
+      observer.observe(heading);
+    });
+  }
+
+  // Scroll 方式（降级）
+  function initTOCActiveScroll(headings, tocLinks) {
+    var throttleTimer = null;
+    
+    function findActiveHeading() {
+      var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      var activeId = null;
+      
+      for (var i = headings.length - 1; i >= 0; i--) {
+        var heading = headings[i];
+        var rect = heading.getBoundingClientRect();
+        
+        if (rect.top <= 100) {
+          activeId = heading.id;
+          break;
+        }
+      }
+      
+      if (activeId) {
+        updateTOCActive(activeId);
+      }
+    }
+    
+    window.addEventListener('scroll', function() {
+      if (throttleTimer) {
+        clearTimeout(throttleTimer);
+      }
+      throttleTimer = setTimeout(findActiveHeading, 100);
+    }, { passive: true });
+    
+    findActiveHeading();
+  }
+  
+  // ===========================================
   // 主初始化函数
   // ===========================================
   function init() {
@@ -371,9 +600,11 @@
       initReadingProgress();
       addCopyButtons();
       wrapTables();
-      addHeadingAnchors(); // ⭐ 新增
-      initTocActive();     // ⭐ 新增
-      fixAnchorOffset();   // ⭐ 新增
+      addHeadingAnchors();
+      initTocActive();
+      fixAnchorOffset();
+      initMermaid();
+      initTOC(); // ⭐ 新增 TOC
     }
   }
   
