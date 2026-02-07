@@ -1,13 +1,53 @@
 /**
- * Hexo 文档站自定义脚本
- * 包含：代码块复制按钮、回到顶部、图片懒加载
+ * Vincent's 文档库 - 自定义脚本（二次优化版本）
+ * 更新时间：2026-02-07
+ * 优化重点：幂等性、性能、标题锚点、目录高亮
+ * 
+ * 功能模块：
+ * - backToTop: 回到顶部按钮
+ * - progressBar: 阅读进度条
+ * - copyCode: 代码块复制按钮
+ * - headingAnchors: 标题锚点生成
+ * - tableWrapper: 表格包裹器（幂等）
+ * - lazyLoad: 图片懒加载
+ * - tocActive: 目录滚动高亮（可选）
  */
 
 (function() {
   'use strict';
   
   // ===========================================
-  // 1. 代码块复制按钮
+  // 工具函数：节流
+  // ===========================================
+  function throttle(func, wait) {
+    var timeout = null;
+    var previous = 0;
+    
+    return function() {
+      var now = Date.now();
+      var remaining = wait - (now - previous);
+      var context = this;
+      var args = arguments;
+      
+      if (remaining <= 0 || remaining > wait) {
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+        previous = now;
+        func.apply(context, args);
+      } else if (!timeout) {
+        timeout = setTimeout(function() {
+          previous = Date.now();
+          timeout = null;
+          func.apply(context, args);
+        }, remaining);
+      }
+    };
+  }
+  
+  // ===========================================
+  // 1. 代码块复制按钮（幂等增强）
   // ===========================================
   function addCopyButtons() {
     var codeBlocks = document.querySelectorAll('pre code, .highlight, pre');
@@ -15,7 +55,15 @@
     codeBlocks.forEach(function(block) {
       // 找到最外层的 pre 元素
       var pre = block.tagName === 'PRE' ? block : block.closest('pre');
-      if (!pre || pre.querySelector('.copy-btn')) return; // 避免重复添加
+      if (!pre) return;
+      
+      // ⭐ 幂等检查：避免重复添加按钮
+      if (pre.hasAttribute('data-copy-added') || pre.querySelector('.copy-btn')) {
+        return;
+      }
+      
+      // 标记已处理
+      pre.setAttribute('data-copy-added', 'true');
       
       // 创建复制按钮
       var btn = document.createElement('button');
@@ -53,8 +101,10 @@
           try {
             document.execCommand('copy');
             btn.innerHTML = '✓';
+            btn.classList.add('copied');
             setTimeout(function() {
               btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z"/><path d="M2 6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H2z"/></svg>';
+              btn.classList.remove('copied');
             }, 2000);
           } catch (err) {
             console.error('复制失败:', err);
@@ -73,6 +123,9 @@
   // 2. 回到顶部按钮
   // ===========================================
   function initBackToTop() {
+    // 检查是否已存在
+    if (document.getElementById('back-to-top')) return;
+    
     var btn = document.createElement('button');
     btn.id = 'back-to-top';
     btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3l-7 7h4v7h6v-7h4z"/></svg>';
@@ -80,14 +133,14 @@
     btn.title = '回到顶部';
     document.body.appendChild(btn);
     
-    // 显示/隐藏逻辑
-    function toggleButton() {
+    // 显示/隐藏逻辑（节流优化）
+    var toggleButton = throttle(function() {
       if (window.pageYOffset > 300) {
         btn.classList.add('visible');
       } else {
         btn.classList.remove('visible');
       }
-    }
+    }, 100);
     
     // 点击滚动到顶部
     btn.onclick = function() {
@@ -95,19 +148,39 @@
     };
     
     // 监听滚动事件
-    var scrollTimer = null;
-    window.addEventListener('scroll', function() {
-      if (scrollTimer) {
-        clearTimeout(scrollTimer);
-      }
-      scrollTimer = setTimeout(toggleButton, 50);
-    });
-    
+    window.addEventListener('scroll', toggleButton, { passive: true });
     toggleButton();
   }
   
   // ===========================================
-  // 3. 图片懒加载
+  // 3. 阅读进度条
+  // ===========================================
+  function initReadingProgress() {
+    // 只在文章页面显示（检测 .article-entry）
+    if (!document.querySelector('.article-entry')) return;
+    
+    // 检查是否已存在
+    if (document.getElementById('reading-progress')) return;
+    
+    var progressBar = document.createElement('div');
+    progressBar.id = 'reading-progress';
+    document.body.appendChild(progressBar);
+    
+    // 更新进度（节流优化）
+    var updateProgress = throttle(function() {
+      var windowHeight = window.innerHeight;
+      var documentHeight = document.documentElement.scrollHeight;
+      var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      var progress = (scrollTop / (documentHeight - windowHeight)) * 100;
+      progressBar.style.width = Math.min(Math.max(progress, 0), 100) + '%';
+    }, 50);
+    
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+  }
+  
+  // ===========================================
+  // 4. 图片懒加载
   // ===========================================
   function initLazyLoad() {
     // 如果浏览器支持原生懒加载
@@ -151,42 +224,15 @@
   }
   
   // ===========================================
-  // 4. 阅读进度条
-  // ===========================================
-  function initReadingProgress() {
-    // 只在文章页面显示
-    if (!document.querySelector('.article-entry')) return;
-    
-    var progressBar = document.createElement('div');
-    progressBar.id = 'reading-progress';
-    document.body.appendChild(progressBar);
-    
-    function updateProgress() {
-      var windowHeight = window.innerHeight;
-      var documentHeight = document.documentElement.scrollHeight;
-      var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      var progress = (scrollTop / (documentHeight - windowHeight)) * 100;
-      progressBar.style.width = Math.min(progress, 100) + '%';
-    }
-    
-    var progressTimer = null;
-    window.addEventListener('scroll', function() {
-      if (progressTimer) {
-        clearTimeout(progressTimer);
-      }
-      progressTimer = setTimeout(updateProgress, 50);
-    });
-    
-    updateProgress();
-  }
-  
-  // ===========================================
-  // 5. 表格响应式包装（如果主题未处理）
+  // 5. 表格包裹器（幂等）
   // ===========================================
   function wrapTables() {
     var tables = document.querySelectorAll('.article-entry table');
     tables.forEach(function(table) {
-      if (table.parentNode.classList.contains('table-wrapper')) return;
+      // ⭐ 幂等检查：避免重复包裹
+      if (table.parentNode.classList.contains('table-wrapper')) {
+        return;
+      }
       
       var wrapper = document.createElement('div');
       wrapper.className = 'table-wrapper';
@@ -196,22 +242,156 @@
   }
   
   // ===========================================
-  // DOM 加载完成后初始化
+  // ⭐ 6. 标题锚点生成（二次优化新增）
   // ===========================================
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      addCopyButtons();
-      initBackToTop();
-      initLazyLoad();
-      initReadingProgress();
-      wrapTables();
+  function addHeadingAnchors() {
+    const headings = document.querySelectorAll('.article-entry h2, .article-entry h3, .article-entry h4');
+    
+    headings.forEach(function(h) {
+      // 幂等检查
+      if (h.querySelector('.heading-anchor')) return;
+      
+      // 生成 ID（如果没有）
+      if (!h.id) {
+        var id = h.textContent
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        h.id = id || 'heading-' + Math.random().toString(36).substr(2, 9);
+      }
+      
+      // 创建锚点链接
+      var anchor = document.createElement('a');
+      anchor.href = '#' + h.id;
+      anchor.className = 'heading-anchor';
+      anchor.innerHTML = '#';
+      anchor.setAttribute('aria-label', '复制标题链接');
+      anchor.title = '复制链接';
+      
+      // 点击复制链接到剪贴板
+      anchor.onclick = function(e) {
+        e.preventDefault();
+        var url = window.location.origin + window.location.pathname + '#' + h.id;
+        
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url).then(function() {
+            anchor.innerHTML = '✓';
+            setTimeout(function() {
+              anchor.innerHTML = '#';
+            }, 1500);
+            
+            // 同时跳转到锚点
+            window.location.hash = h.id;
+          });
+        } else {
+          window.location.hash = h.id;
+        }
+      };
+      
+      h.appendChild(anchor);
     });
-  } else {
-    addCopyButtons();
+  }
+  
+  // ===========================================
+  // ⭐ 7. 目录滚动高亮（可选，检测到 TOC 才启用）
+  // ===========================================
+  function initTocActive() {
+    // 检测是否存在目录（常见选择器）
+    var toc = document.querySelector('.toc, #toc, .table-of-contents, [data-toc]');
+    if (!toc) return; // 没有目录则跳过
+    
+    var headings = document.querySelectorAll('.article-entry h2, .article-entry h3');
+    if (headings.length === 0) return;
+    
+    var tocLinks = toc.querySelectorAll('a[href^="#"]');
+    if (tocLinks.length === 0) return;
+    
+    // 使用 Intersection Observer 监听标题可见性
+    var activeHeading = null;
+    
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          activeHeading = entry.target.id;
+          
+          // 高亮对应的目录项
+          tocLinks.forEach(function(link) {
+            if (link.getAttribute('href') === '#' + activeHeading) {
+              link.classList.add('active');
+            } else {
+              link.classList.remove('active');
+            }
+          });
+        }
+      });
+    }, {
+      rootMargin: '-80px 0px -80% 0px' // 顶部偏移，避免导航栏遮挡
+    });
+    
+    headings.forEach(function(h) {
+      if (h.id) {
+        observer.observe(h);
+      }
+    });
+  }
+  
+  // ===========================================
+  // ⭐ 8. 锚点跳转偏移修正（CSS scroll-margin-top 的 JS 补充）
+  // ===========================================
+  function fixAnchorOffset() {
+    // 处理页面加载时的锚点
+    if (window.location.hash) {
+      setTimeout(function() {
+        var target = document.querySelector(window.location.hash);
+        if (target) {
+          var offset = 80; // 与导航栏高度一致
+          var elementPosition = target.getBoundingClientRect().top + window.pageYOffset;
+          var offsetPosition = elementPosition - offset;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }
+  
+  // ===========================================
+  // 主初始化函数
+  // ===========================================
+  function init() {
+    // 基础功能（所有页面）
     initBackToTop();
     initLazyLoad();
-    initReadingProgress();
-    wrapTables();
+    
+    // 文章页专属功能
+    if (document.querySelector('.article-entry')) {
+      initReadingProgress();
+      addCopyButtons();
+      wrapTables();
+      addHeadingAnchors(); // ⭐ 新增
+      initTocActive();     // ⭐ 新增
+      fixAnchorOffset();   // ⭐ 新增
+    }
   }
+  
+  // ===========================================
+  // DOM 加载完成后执行
+  // ===========================================
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  
+  // ===========================================
+  // 暴露重新初始化接口（用于 PJAX/SPA 场景）
+  // ===========================================
+  window.customScriptsReinit = function() {
+    console.log('[CustomScripts] Reinitializing...');
+    init();
+  };
   
 })();

@@ -1,3 +1,104 @@
+/* ============================================================================
+   Vincent's 文档库 - 自定义样式（二次优化版本）
+   更新时间：2026-02-07
+   优化重点：暗色模式、截断、行宽、锚点、无障碍
+   ========================================================================= */
+
+/* ========================================
+   BASE - 全局基础样式
+   ======================================== */
+
+:root {
+  --primary-color: #0366d6;
+  --primary-hover: #0256c2;
+  --success-color: #28a745;
+  --text-color: #333;
+  --text-muted: #666;
+  --bg-color: #fff;
+  --border-color: #e1e4e8;
+  --code-bg: #f6f8fa;
+  --code-text: #d73a49;
+  --link-color: #0366d6;
+  --heading-color: #2c3e50;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #58a6ff;
+    --primary-hover: #79b8ff;
+    --success-color: #3fb950;
+    --text-color: #c9d1d9;
+    --text-muted: #8b949e;
+    --bg-color: #0d1117;
+    --border-color: #30363d;
+    --code-bg: #161b22;
+    --code-text: #ff7b72;
+    --link-color: #58a6ff;
+    --heading-color: #c9d1d9;
+  }
+  
+  body {
+    background: var(--bg-color);
+    color: var(--text-color);
+  }
+  
+  .article-entry table {
+    background: var(--bg-color);
+  }
+  
+  .article-entry table th {
+    background: #161b22;
+    border-color: var(--border-color);
+  }
+  
+  .article-entry table td {
+    border-color: var(--border-color);
+  }
+  
+  .article-entry table tr:nth-child(even) {
+    background: #0d1117;
+  }
+  
+  .article-entry table tr:hover {
+    background: #161b22;
+  }
+  
+  .article-entry pre {
+    background: var(--code-bg);
+    border-color: var(--border-color);
+  }
+  
+  .article-entry p code,
+  .article-entry li code,
+  .article-entry td code {
+    background: var(--code-bg);
+    border-color: var(--border-color);
+    color: var(--code-text);
+  }
+}
+
+/* ========================================
+   LAYOUT - 布局约束
+   ======================================== */
+
+/* 正文最大宽度（提升可读性） */
+.article-entry {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 20px;
+}
+
+@media (max-width: 768px) {
+  .article-entry {
+    padding: 0 15px;
+  }
+}
+
+/* ========================================
+   POST LIST - 首页文章列表（二次打磨）
+   ======================================== */
+
 /* 分类列表样式 */
 .categories-list {
   margin-top: 2rem;
@@ -9,6 +110,17 @@
   border-left: 3px solid #4a90e2;
   background: #f8f9fa;
   transition: all 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .category-item {
+    background: #161b22;
+    border-left-color: var(--primary-color);
+  }
+  
+  .category-item:hover {
+    background: #1c2128;
+  }
 }
 
 .category-item:hover {
@@ -26,12 +138,12 @@
 .category-item h3 {
   margin: 0;
   font-size: 1.2rem;
-  color: #333;
+  color: var(--heading-color);
   flex: 1;
 }
 
 .category-item .count {
-  color: #666;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin-left: 0.5rem;
 }
@@ -56,6 +168,16 @@
   font-size: 0.9rem;
 }
 
+@media (prefers-color-scheme: dark) {
+  .tag-item {
+    background: var(--primary-color);
+  }
+  
+  .tag-item:hover {
+    background: var(--primary-hover);
+  }
+}
+
 .tag-item:hover {
   background: #357abd;
   transform: translateY(-2px);
@@ -72,36 +194,50 @@
 }
 
 /* 首页文章列表样式 */
-.home.post-list .post-list-item {
+.home.post-list .post-list-item,
+.post-list .post-list-item {
   margin-bottom: 2.5rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.home.post-list .post-list-item:last-child {
+.home.post-list .post-list-item:last-child,
+.post-list .post-list-item:last-child {
   border-bottom: none;
 }
 
-.home.post-list .post-title {
+/* ⭐ 二次优化：标题2行截断 */
+.home.post-list .post-title,
+.post-list .post-title,
+.home .post-title {
   margin-top: 0;
   margin-bottom: 0.5rem;
   font-size: 1.8rem;
   font-weight: 600;
   line-height: 1.3;
+  /* 关键：2行截断 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.home.post-list .post-title-link {
-  color: #2c3e50;
+.home.post-list .post-title-link,
+.post-list .post-title-link {
+  color: var(--heading-color);
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
-.home.post-list .post-title-link:hover {
-  color: #4a90e2;
+.home.post-list .post-title-link:hover,
+.post-list .post-title-link:hover {
+  color: var(--primary-color);
 }
 
-.home.post-list .post-info {
-  color: #7f8c8d;
+.home.post-list .post-info,
+.post-list .post-info {
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin-bottom: 1rem;
   display: flex;
@@ -109,23 +245,32 @@
   gap: 1rem;
 }
 
-.home.post-list .post-info::before {
+.home.post-list .post-info::before,
+.post-list .post-info::before {
   content: "📅";
   margin-right: 0.3rem;
 }
 
-.home.post-list .post-content {
-  color: #555;
+/* ⭐ 二次优化：摘要3-4行截断 */
+.home.post-list .post-content,
+.post-list .post-content {
+  color: var(--text-color);
   font-size: 1rem;
   line-height: 1.8;
   margin-bottom: 1rem;
-  text-align: justify;
+  /* 关键：4行截断 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.home.post-list .read-more {
+.home.post-list .read-more,
+.post-list .read-more {
   display: inline-block;
   padding: 0.5rem 1.5rem;
-  background: #4a90e2;
+  background: var(--primary-color);
   color: white !important;
   text-decoration: none;
   border-radius: 4px;
@@ -134,48 +279,174 @@
   font-weight: 500;
 }
 
-.home.post-list .read-more:hover {
-  background: #357abd;
+.home.post-list .read-more:hover,
+.post-list .read-more:hover {
+  background: var(--primary-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .category-item {
-    padding: 0.8rem;
-  }
-  
-  .category-item h3 {
-    font-size: 1rem;
-  }
-  
-  .tag-item {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
-  }
-  
-  .home.post-list .post-title {
-    font-size: 1.4rem;
-  }
-  
-  .home.post-list .post-content {
-    font-size: 0.95rem;
-  }
+/* ========================================
+   TYPOGRAPHY - 正文排版（二次优化）
+   ======================================== */
+
+/* 标题层级 */
+.article-entry h1 {
+  font-size: 2em;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: var(--heading-color);
+  font-weight: 700;
 }
 
-/* ========================================== */
-/* 前端体验优化 - 2026-02-07 */
-/* ========================================== */
+.article-entry h2 {
+  font-size: 1.5em;
+  margin-top: 1.3em;
+  margin-bottom: 0.5em;
+  color: var(--heading-color);
+  font-weight: 600;
+  /* ⭐ 锚点偏移修正（避免固定导航遮挡） */
+  scroll-margin-top: 80px;
+}
 
-/* 1. 代码块复制按钮 */
+.article-entry h3 {
+  font-size: 1.25em;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  color: var(--heading-color);
+  font-weight: 600;
+  scroll-margin-top: 80px;
+}
+
+.article-entry h4 {
+  font-size: 1.1em;
+  margin-top: 1.1em;
+  margin-bottom: 0.5em;
+  color: var(--heading-color);
+  font-weight: 600;
+  scroll-margin-top: 80px;
+}
+
+/* 段落间距 */
+.article-entry p {
+  margin: 1em 0;
+  line-height: 1.8;
+  color: var(--text-color);
+}
+
+/* 引用块 */
+.article-entry blockquote {
+  margin: 1.5em 0;
+  padding: 0.8em 1.2em;
+  border-left: 4px solid var(--primary-color);
+  background: var(--code-bg);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* 列表 */
+.article-entry ul,
+.article-entry ol {
+  margin: 1em 0;
+  padding-left: 2em;
+  line-height: 1.8;
+}
+
+.article-entry li {
+  margin: 0.5em 0;
+}
+
+/* 分割线 */
+.article-entry hr {
+  margin: 2em 0;
+  border: none;
+  border-top: 2px solid var(--border-color);
+}
+
+/* 链接 */
+.article-entry a {
+  color: var(--link-color);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.article-entry a:hover {
+  border-bottom-color: var(--link-color);
+}
+
+/* ⭐ 二次优化：标题锚点链接 */
+.heading-anchor {
+  margin-left: 0.5em;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: normal;
+  font-size: 0.8em;
+}
+
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor {
+  opacity: 1;
+}
+
+.heading-anchor:hover {
+  color: var(--primary-hover);
+}
+
+/* ========================================
+   CODE - 代码块优化
+   ======================================== */
+
+/* 代码块基础样式 */
+.article-entry pre {
+  position: relative;
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+  line-height: 1.6;
+  margin: 1.5em 0;
+  border: 1px solid var(--border-color);
+  /* ⭐ 二次优化：长代码横向滚动 */
+  white-space: pre;
+  word-wrap: normal;
+}
+
+.article-entry pre code {
+  background: transparent;
+  padding: 0;
+  border: none;
+  font-size: 14px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  color: var(--text-color);
+  white-space: pre;
+}
+
+/* 内联代码 */
+.article-entry p code,
+.article-entry li code,
+.article-entry td code {
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--code-text);
+  border: 1px solid var(--border-color);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  white-space: nowrap;
+}
+
+/* 代码块复制按钮 */
 .copy-btn {
   position: absolute;
   top: 8px;
   right: 8px;
   padding: 6px 10px;
   background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -191,6 +462,17 @@
   min-height: auto;
 }
 
+@media (prefers-color-scheme: dark) {
+  .copy-btn {
+    background: rgba(22, 27, 34, 0.9);
+    color: var(--text-color);
+  }
+  
+  .copy-btn:hover {
+    background: #1c2128;
+  }
+}
+
 pre:hover .copy-btn,
 .highlight:hover .copy-btn {
   opacity: 1;
@@ -198,8 +480,8 @@ pre:hover .copy-btn,
 
 .copy-btn:hover {
   background: #fff;
-  border-color: #0366d6;
-  color: #0366d6;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .copy-btn:active {
@@ -207,19 +489,83 @@ pre:hover .copy-btn,
 }
 
 .copy-btn.copied {
-  background: #28a745;
-  border-color: #28a745;
+  background: var(--success-color);
+  border-color: var(--success-color);
   color: white;
 }
 
-/* 2. 回到顶部按钮 */
+/* ========================================
+   TABLE - 表格响应式（补强）
+   ======================================== */
+
+.article-entry table,
+.table-wrapper {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.5em 0;
+}
+
+.article-entry table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  background: var(--bg-color);
+  /* 滚动阴影效果 */
+  background: 
+    linear-gradient(90deg, var(--bg-color) 0%, transparent 20px),
+    linear-gradient(-90deg, var(--bg-color) 0%, transparent 20px),
+    radial-gradient(farthest-side at 0% 50%, rgba(0, 0, 0, 0.15), transparent),
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.15), transparent);
+  background-repeat: no-repeat;
+  background-size: 20px 100%, 20px 100%, 14px 100%, 14px 100%;
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.article-entry table th {
+  background: var(--code-bg);
+  font-weight: 600;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  text-align: left;
+  color: var(--heading-color);
+}
+
+.article-entry table td {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  vertical-align: top;
+  color: var(--text-color);
+}
+
+.article-entry table tr:nth-child(even) {
+  background: rgba(246, 248, 250, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  .article-entry table tr:nth-child(even) {
+    background: rgba(22, 27, 34, 0.5);
+  }
+}
+
+.article-entry table tr:hover {
+  background: rgba(3, 102, 214, 0.05);
+}
+
+/* ========================================
+   COMPONENTS - 交互组件
+   ======================================== */
+
+/* 回到顶部按钮 */
 #back-to-top {
   position: fixed;
   bottom: 30px;
   right: 30px;
   width: 44px;
   height: 44px;
-  background: #0366d6;
+  background: var(--primary-color);
   color: white;
   border: none;
   border-radius: 50%;
@@ -240,7 +586,7 @@ pre:hover .copy-btn,
 }
 
 #back-to-top:hover {
-  background: #0256c2;
+  background: var(--primary-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -249,142 +595,19 @@ pre:hover .copy-btn,
   transform: translateY(0);
 }
 
-/* 3. 阅读进度条 */
+/* 阅读进度条 */
 #reading-progress {
   position: fixed;
   top: 0;
   left: 0;
   height: 3px;
-  background: linear-gradient(90deg, #0366d6, #28a745);
+  background: linear-gradient(90deg, var(--primary-color), var(--success-color));
   z-index: 9999;
   transition: width 0.2s ease;
   box-shadow: 0 1px 3px rgba(3, 102, 214, 0.3);
 }
 
-/* 4. 表格响应式优化 */
-.article-entry table,
-.table-wrapper {
-  display: block;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin: 1.5em 0;
-}
-
-.article-entry table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9em;
-  background: white;
-  /* 滚动阴影效果 */
-  background: 
-    linear-gradient(90deg, white 0%, transparent 20px),
-    linear-gradient(-90deg, white 0%, transparent 20px),
-    radial-gradient(farthest-side at 0% 50%, rgba(0, 0, 0, 0.15), transparent),
-    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.15), transparent);
-  background-repeat: no-repeat;
-  background-size: 20px 100%, 20px 100%, 14px 100%, 14px 100%;
-  background-position: 0 0, 100% 0, 0 0, 100% 0;
-  background-attachment: local, local, scroll, scroll;
-}
-
-.article-entry table th {
-  background: #f6f8fa;
-  font-weight: 600;
-  padding: 10px;
-  border: 1px solid #dfe2e5;
-  white-space: nowrap;
-  text-align: left;
-}
-
-.article-entry table td {
-  padding: 10px;
-  border: 1px solid #dfe2e5;
-  vertical-align: top;
-}
-
-.article-entry table tr:nth-child(even) {
-  background: #f9f9f9;
-}
-
-.article-entry table tr:hover {
-  background: #f0f6fc;
-}
-
-/* 5. 代码块基础优化 */
-.article-entry pre {
-  position: relative;
-  background: #f6f8fa;
-  border-radius: 6px;
-  padding: 16px;
-  overflow-x: auto;
-  line-height: 1.6;
-  margin: 1.5em 0;
-  border: 1px solid #e1e4e8;
-}
-
-.article-entry pre code {
-  background: transparent;
-  padding: 0;
-  border: none;
-  font-size: 14px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-}
-
-/* 内联代码 */
-.article-entry p code,
-.article-entry li code,
-.article-entry td code {
-  background: #f6f8fa;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 0.9em;
-  color: #d73a49;
-  border: 1px solid #e1e4e8;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-}
-
-/* 6. 链接焦点和无障碍 */
-a:focus {
-  outline: 2px solid #0366d6;
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-a:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* 跳过导航链接 */
-.skip-to-content {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: #0366d6;
-  color: white !important;
-  padding: 8px 16px;
-  text-decoration: none;
-  z-index: 9999;
-  border-radius: 0 0 4px 0;
-  font-weight: 500;
-}
-
-.skip-to-content:focus {
-  top: 0;
-  outline: 2px solid white;
-  outline-offset: -2px;
-}
-
-/* 7. 按钮最小触摸目标 */
-button,
-.btn,
-input[type="submit"],
-input[type="button"] {
-  min-height: 44px;
-  min-width: 44px;
-  cursor: pointer;
-}
-
-/* 8. 图片优化 */
+/* 图片优化 */
 .article-entry img {
   max-width: 100%;
   height: auto;
@@ -400,14 +623,95 @@ input[type="button"] {
 
 /* 懒加载占位 */
 img[data-src] {
-  background: #f6f8fa;
+  background: var(--code-bg);
   min-height: 200px;
 }
 
-/* ========================================== */
-/* 移动端专属优化 */
-/* ========================================== */
+/* ========================================
+   A11Y - 无障碍增强（二次优化）
+   ======================================== */
+
+/* ⭐ 焦点环增强（所有交互元素） */
+*:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+button:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid var(--success-color);
+}
+
+a:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 跳过导航链接 */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary-color);
+  color: white !important;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 9999;
+  border-radius: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.skip-to-content:focus {
+  top: 0;
+  outline: 2px solid white;
+  outline-offset: -2px;
+}
+
+/* 按钮最小触摸目标 */
+button,
+.btn,
+input[type="submit"],
+input[type="button"] {
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+}
+
+/* ========================================
+   RESPONSIVE - 响应式设计
+   ======================================== */
+
 @media (max-width: 768px) {
+  .category-item {
+    padding: 0.8rem;
+  }
+  
+  .category-item h3 {
+    font-size: 1rem;
+  }
+  
+  .tag-item {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .home.post-list .post-title,
+  .post-list .post-title,
+  .home .post-title {
+    font-size: 1.4rem;
+  }
+  
+  .home.post-list .post-content,
+  .post-list .post-content {
+    font-size: 0.95rem;
+  }
+  
   /* 回到顶部按钮 */
   #back-to-top {
     bottom: 20px;
@@ -456,13 +760,38 @@ img[data-src] {
   }
 }
 
-/* ========================================== */
-/* 打印样式优化 */
-/* ========================================== */
+/* ⭐ 二次优化：320px 最小宽度无溢出 */
+@media (max-width: 320px) {
+  .article-entry {
+    padding: 0 10px;
+  }
+  
+  .home.post-list .post-title,
+  .post-list .post-title {
+    font-size: 1.2rem;
+  }
+  
+  .article-entry pre {
+    padding: 8px;
+    font-size: 12px;
+  }
+  
+  .article-entry table th,
+  .article-entry table td {
+    padding: 6px 4px;
+    font-size: 0.8em;
+  }
+}
+
+/* ========================================
+   PRINT - 打印样式
+   ======================================== */
+
 @media print {
   #back-to-top,
   .copy-btn,
-  #reading-progress {
+  #reading-progress,
+  .heading-anchor {
     display: none !important;
   }
   
@@ -473,5 +802,10 @@ img[data-src] {
   
   .article-entry table {
     page-break-inside: avoid;
+  }
+  
+  a {
+    color: #000;
+    text-decoration: underline;
   }
 }
