@@ -15,8 +15,11 @@ mixin posts()
                             != item.title
                     +postInfo(item)
                     .post-content
-                        != item.excerpt
-                    a.read-more(href= url_for(item.path))!= __('more')
+                        - var excerpt = item.excerpt || strip_html(item.content).substring(0, 200);
+                        != excerpt
+                        if excerpt.length >= 200 && !item.excerpt
+                            | ...
+                    a.read-more(href= url_for(item.path)) 阅读全文 »
         - })
 
 //- Archive Page
